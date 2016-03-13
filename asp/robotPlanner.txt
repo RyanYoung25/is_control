@@ -1,0 +1,125 @@
+%Action Description:
+%L = 
+%   at(robot, X, Y, DIR)
+%   blocked(X, Y)
+% where X and Y are the column and row of the 4 by 4 grid  
+%   DIR is the direction the robot is facing
+%
+%The grid is a matrix:
+% (0,0) (0,1) (0,2) (0,3)
+% (1,0) (1,1) (1,2) (1,3)
+% (2,0) (2,1) (2,2) (2,3)
+% (3,0) (3,1) (3,2) (3,3)
+%
+%
+%Rotations:
+%   0
+% 3   1
+%   2
+%A = 
+%   rotateRight(robot)
+%   rotateLeft(robot)
+%   moveForward(robot)
+%
+%D = (In a short hand, informal notation with variables)
+%   rotateRight(robot) causes  at(robot, X, Y, 0) if at(robot, X, Y, 3)
+%   rotateRight(robot) causes  at(robot, X, Y, 1) if at(robot, X, Y, 0)
+%   rotateRight(robot) causes  at(robot, X, Y, 2) if at(robot, X, Y, 1)
+%   rotateRight(robot) causes  at(robot, X, Y, 3) if at(robot, X, Y, 2)
+%
+%   rotateLeft(robot) causes  at(robot, X, Y, 0) if at(robot, X, Y, 1)
+%   rotateLeft(robot) causes  at(robot, X, Y, 1) if at(robot, X, Y, 2)
+%   rotateLeft(robot) causes  at(robot, X, Y, 2) if at(robot, X, Y, 3)
+%   rotateLeft(robot) causes  at(robot, X, Y, 3) if at(robot, X, Y, 0)
+%
+%   moveForward(robot) causes  at(robot, X-1, Y, 0) if at(robot, X, Y, 0), not blocked(X-1, Y)
+%   moveForward(robot) causes  at(robot, X, Y+1, 1) if at(robot, X, Y, 1), not blocked(X, Y+1) 
+%   moveForward(robot) causes  at(robot, X+1, Y, 2) if at(robot, X, Y, 2), not blocked(X+1, Y) 
+%   moveForward(robot) causes  at(robot, X, Y-1, 3) if at(robot, X, Y, 3), not blocked(X, Y-1) 
+%   
+% 
+%Start State= 
+%   at(robot, 0, 0, 1)
+%
+%Goal State=
+%   at(robot, 3,3, 2)
+
+%Define the types, should parameterize like step..
+robot(pioneer). xpos(0). xpos(1). xpos(2). xpos(3). ypos(0). ypos(1). ypos(2). ypos(3).
+dir(0). dir(1). dir(2). dir(3). 
+
+%Define the steps 
+#const n = 10.
+step(0..n). 
+
+%Define the fluents
+fluent(intertial, at(ROBOT, POSX, POSY, DIR)) :- robot(ROBOT), xpos(POSX), ypos(POSY), dir(DIR).
+fluent(intertial, blocked(POSX, POSY)) :- xpos(POSX), ypos(POSY).
+
+%Define the Action
+action(moveTo(FARMER, ITEM, POS)) :- farmer(FARMER), item(ITEM), pos(POS).
+action(rotateRight(ROBOT)) :- robot(ROBOT).
+action(rotateLeft(ROBOT)) :- robot(ROBOT).
+action(moveForward(ROBOT)) :- robot(ROBOT).
+
+%Encode the causal laws
+
+holds(at(ROBOT, X, Y, 0), S+1) :- occurs(rotateRight(ROBOT), S), holds(at(ROBOT, X, Y, 3), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 1), S+1) :- occurs(rotateRight(ROBOT), S), holds(at(ROBOT, X, Y, 0), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 2), S+1) :- occurs(rotateRight(ROBOT), S), holds(at(ROBOT, X, Y, 1), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 3), S+1) :- occurs(rotateRight(ROBOT), S), holds(at(ROBOT, X, Y, 2), S), robot(ROBOT), xpos(X), ypos(Y).
+
+holds(at(ROBOT, X, Y, 0), S+1) :- occurs(rotateLeft(ROBOT), S), holds(at(ROBOT, X, Y, 1), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 1), S+1) :- occurs(rotateLeft(ROBOT), S), holds(at(ROBOT, X, Y, 2), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 2), S+1) :- occurs(rotateLeft(ROBOT), S), holds(at(ROBOT, X, Y, 3), S), robot(ROBOT), xpos(X), ypos(Y).
+holds(at(ROBOT, X, Y, 3), S+1) :- occurs(rotateLeft(ROBOT), S), holds(at(ROBOT, X, Y, 0), S), robot(ROBOT), xpos(X), ypos(Y).
+
+holds(at(ROBOT, X-1, Y, 0), S+1) :- occurs(moveForward(ROBOT), S),  holds(at(ROBOT, X, Y, 0), S), not holds(blocked(X-1, Y), S), robot(ROBOT), xpos(X), ypos(Y), step(S). 
+holds(at(ROBOT, X, Y+1, 1), S+1) :- occurs(moveForward(ROBOT), S),  holds(at(ROBOT, X, Y, 1), S), not holds(blocked(X, Y+1), S), robot(ROBOT), xpos(X), ypos(Y), step(S).  
+holds(at(ROBOT, X+1, Y, 2), S+1) :- occurs(moveForward(ROBOT), S),  holds(at(ROBOT, X, Y, 2), S), not holds(blocked(X+1, Y), S), robot(ROBOT), xpos(X), ypos(Y), step(S).  
+holds(at(ROBOT, X, Y-1, 3), S+1) :- occurs(moveForward(ROBOT), S),  holds(at(ROBOT, X, Y, 3), S), not holds(blocked(X, Y-1), S), robot(ROBOT), xpos(X), ypos(Y), step(S).  
+
+
+%Encode intertia
+holds(F, S+1) :- step(S), fluent(intertial, F), holds(F, S), not -holds(F, S+1).
+-holds(F, S+1) :- step(S), fluent(intertial, F), -holds(F, S), not holds(F, S+1).
+
+%Encode cwa for defined fluents, we don't have defined fluents but good practice
+-holds(F, S) :- step(S), fluent(defined, F), not holds(F, S).
+
+%Planning part
+
+%Initial State
+holds(at(pioneer, 0, 0, 1), 0).
+%holds(blocked(2,3),0).
+
+
+%Define goal and that failure is not an option
+goal(S) :- holds(at(pioneer, 3,3,2), S), step(S).
+
+success :- goal(S), step(S), S < n.
+:- not success. %Failure is not an option
+
+%Generate the actions
+1{occurs(A,S): action(A)}1 :- step(S), not goal(S), S < n.
+
+%Generated solution on my computer:
+% Plan Generated:
+% occurs(moveForward(pioneer),0)
+% occurs(moveForward(pioneer),1)
+% occurs(moveForward(pioneer),2)
+% occurs(rotateRight(pioneer),3)
+% occurs(moveForward(pioneer),4)
+% occurs(moveForward(pioneer),5)
+% occurs(moveForward(pioneer),6)
+% 
+% ASCII Representation:
+% >***  *>**  **>*  ***>  
+% ****  ****  ****  ****  
+% ****  ****  ****  ****  
+% ****  ****  ****  ****  
+% 
+% ***V  ****  ****  ****
+% ****  ***V  ****  ****
+% ****  ****  ***V  ****
+% ****  ****  ****  ***V
